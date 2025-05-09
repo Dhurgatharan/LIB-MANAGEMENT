@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library System with Roles</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css"
+  />
+</head>
+<body>
+  <!-- LOGIN SECTION -->
+  <div class="container my-5" id="login-section">
+    <h2>Login</h2>
+    <form id="login-form" class="my-4">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" class="form-control" id="login-username" required value="admin" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" class="form-control" id="login-password" required value="1234" />
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-control" id="login-role" required>
+          <option value="User">User</option>
+          <option value="Admin" selected>Admin</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Login</button>
+      <small class="form-text text-muted mt-2">
+        Default Admin Login: <b>admin</b> / <b>1234</b> (Role: Admin)
+      </small>
+      <p class="mt-3">Don't have an account? <a href="#" onclick="toggleForm('signup')">Sign Up</a></p>
+    </form>
+    <div id="login-alert"></div>
+  </div>
+
+  <!-- SIGNUP SECTION -->
+  <div class="container my-5 d-none" id="signup-section">
+    <h2>Sign Up</h2>
+    <form id="signup-form" class="my-4">
+      <div class="form-group">
+        <label>Choose Username</label>
+        <input type="text" class="form-control" id="signup-username" required />
+      </div>
+      <div class="form-group">
+        <label>Choose Password</label>
+        <input type="password" class="form-control" id="signup-password" required />
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-control" id="signup-role" required>
+          <option value="User">User</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-success">Register</button>
+      <p class="mt-3">Already have an account? <a href="#" onclick="toggleForm('login')">Login</a></p>
+    </form>
+    <div id="signup-alert"></div>
+  </div>
+
+  <!-- APP SECTION -->
+  <div class="d-none" id="app-section">
+    <nav class="navbar navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">Library System</a>
+      <button class="btn btn-danger ml-auto" onclick="logout()">Logout</button>
+    </nav>
+
+    <div id="alertuser"></div>
+    <div class="container my-4">
+      <h2>Issue Book</h2>
+      <form id="mylibraryform">
+        <div class="form-group">
+          <label>User Name</label>
+          <input type="text" class="form-control" id="User-Name" />
+        </div>
+        <div class="form-group">
+          <label>Book Name</label>
+          <input type="text" class="form-control" id="Book-Name" />
+        </div>
+        <div class="form-group">
+          <label>Book Type</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="bookType" value="Fiction" /> Fiction
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="bookType" value="Programming" /> Programming
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="bookType" value="Cooking" /> Cooking
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline-dark">Add Book</button>
+      </form>
+
+      <table class="table table-dark my-4">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>User</th>
+            <th>Book</th>
+            <th>Genre</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    function getUsers() {
+      return JSON.parse(localStorage.getItem("userList")) || [
+        { username: "admin", password: "1234", role: "Admin" }
+      ];
+    }
+
+    function setUsers(users) {
+      localStorage.setItem("userList", JSON.stringify(users));
+    }
+
+    function toggleForm(form) {
+      document.getElementById("signup-section").classList.toggle("d-none", form !== "signup");
+      document.getElementById("login-section").classList.toggle("d-none", form !== "login");
+    }
+
+    // Signup
+    document.getElementById("signup-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const uname = document.getElementById("signup-username").value.trim();
+      const pwd = document.getElementById("signup-password").value.trim();
+      const role = document.getElementById("signup-role").value;
+
+      let users = getUsers();
+      if (users.find(u => u.username === uname)) {
+        document.getElementById("signup-alert").innerHTML = `<div class="alert alert-danger">Username already exists</div>`;
+        return;
+      }
+
+      users.push({ username: uname, password: pwd, role });
+      setUsers(users);
+      document.getElementById("signup-alert").innerHTML = `<div class="alert alert-success">Signup successful. Please login.</div>`;
+      setTimeout(() => {
+        toggleForm("login");
+        document.getElementById("signup-form").reset();
+        document.getElementById("signup-alert").innerHTML = "";
+      }, 1500);
+    });
+
+    // Login
+    document.getElementById("login-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const uname = document.getElementById("login-username").value.trim();
+      const pwd = document.getElementById("login-password").value.trim();
+      const role = document.getElementById("login-role").value;
+
+      const users = getUsers();
+      const found = users.find(u => u.username === uname && u.password === pwd && u.role === role);
+
+      if (found) {
+        localStorage.setItem("loggedInUser", JSON.stringify(found));
+        showApp();
+      } else {
+        document.getElementById("login-alert").innerHTML = `<div class="alert alert-danger">Invalid credentials or role</div>`;
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem("loggedInUser");
+      location.reload();
+    }
+
+    function getLoggedUser() {
+      return JSON.parse(localStorage.getItem("loggedInUser"));
+    }
+
+    function showApp() {
+      document.getElementById("login-section").classList.add("d-none");
+      document.getElementById("signup-section").classList.add("d-none");
+      document.getElementById("app-section").classList.remove("d-none");
+      showList();
+    }
+
+    // Book Management
+    function inputs(userName, bookName, type, status = "Issued") {
+      this.userName = userName;
+      this.bookName = bookName;
+      this.type = type;
+      this.status = status;
+    }
+
+    class Display {
+      add(arrayInputs) {
+        const tableBody = document.getElementById("table-body");
+        const today = new Date().toLocaleDateString();
+        const currentUser = getLoggedUser();
+        let html = "";
+
+        arrayInputs.forEach((book, index) => {
+          if (currentUser.role === "Admin" || currentUser.username === book.userName) {
+            html += `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${today}</td>
+                <td>${book.userName}</td>
+                <td>${book.bookName}</td>
+                <td>${book.type}</td>
+                <td><span class="badge badge-${book.status === "Issued" ? "warning" : "success"}">${book.status}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-info" onclick="toggleStatus(${index})">${book.status === "Issued" ? "Return" : "Issue"}</button>
+                  <button class="btn btn-sm btn-danger ml-2" onclick="deleteItem(${index})">Delete</button>
+                </td>
+              </tr>`;
+          }
+        });
+        tableBody.innerHTML = html;
+      }
+
+      clear() {
+        document.getElementById("mylibraryform").reset();
+      }
+
+      validate(book) {
+        return book.userName && book.bookName && book.type;
+      }
+
+      alertuser(type, title, msg) {
+        const alertDiv = document.getElementById("alertuser");
+        alertDiv.innerHTML = `
+          <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <strong>${title}</strong> ${msg}
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+          </div>`;
+        setTimeout(() => (alertDiv.innerHTML = ""), 3000);
+      }
+
+      checkIssue(list, book) {
+        for (let item of list) {
+          if (item.bookName === book.bookName && item.status === "Issued") {
+            this.issuedUser = item.userName;
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+
+    function getList() {
+      return JSON.parse(localStorage.getItem("listItems")) || [];
+    }
+
+    function setList(list) {
+      localStorage.setItem("listItems", JSON.stringify(list));
+    }
+
+    function showList() {
+      const list = getList();
+      new Display().add(list);
+    }
+
+    function deleteItem(index) {
+      let list = getList();
+      list.splice(index, 1);
+      setList(list);
+      showList();
+    }
+
+    function toggleStatus(index) {
+      let list = getList();
+      list[index].status = list[index].status === "Issued" ? "Returned" : "Issued";
+      setList(list);
+      showList();
+    }
+
+    document.getElementById("mylibraryform")?.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const userName = document.getElementById("User-Name").value;
+      const bookName = document.getElementById("Book-Name").value;
+      const type = document.querySelector('input[name="bookType"]:checked')?.value;
+
+      const book = new inputs(userName, bookName, type);
+      const display = new Display();
+      let list = getList();
+
+      if (!display.validate(book)) {
+        display.alertuser("danger", "Missing!", "All fields required.");
+      } else if (!display.checkIssue(list, book)) {
+        display.alertuser("danger", "Already Issued", `Book already issued by ${display.issuedUser}`);
+      } else {
+        list.push(book);
+        setList(list);
+        display.add(list);
+        display.clear();
+        display.alertuser("success", "Success", "Book issued.");
+      }
+    });
+
+    if (getLoggedUser()) showApp();
+  </script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
